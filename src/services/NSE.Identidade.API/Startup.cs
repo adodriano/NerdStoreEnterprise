@@ -64,7 +64,7 @@ namespace NSE.Identidade.API
                         ValidIssuer = appSettings.Emissor
                     }; 
                 });
-
+            
             services.AddControllers();
 
             services.AddSwaggerGen(c =>
@@ -86,7 +86,7 @@ namespace NSE.Identidade.API
                 });
             });
         }
-
+  
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             app.UseSwagger();
