@@ -11,9 +11,8 @@ using System.Threading.Tasks;
 
 namespace NSE.Identidade.API.Controllers
 {
-    [ApiController]
     [Route("api/identidade")]
-    public class AuthController : Controller
+    public class AuthController : MainController
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _UserManager;
@@ -30,7 +29,7 @@ namespace NSE.Identidade.API.Controllers
         public async Task<ActionResult> Registrar(UsuarioRegistro registro)
         {
             if (!ModelState.IsValid)
-                return BadRequest();
+                return CustomResponse(ModelState);
 
             var user = new IdentityUser
             {
@@ -42,26 +41,38 @@ namespace NSE.Identidade.API.Controllers
             var result = await _UserManager.CreateAsync(user, registro.Senha);
             if (result.Succeeded)
             {
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return Ok(await GerarJwt(registro.Email));
+                return CustomResponse(await GerarJwt(registro.Email));
             }
 
-            return BadRequest();
+            foreach ( var error in result.Errors)
+            {
+                AdicionarErroProcessamento(error.Description);
+            }
+
+            return CustomResponse();
         }
 
         [HttpPost("autenticar")]
         public async Task<ActionResult> Login(UsuarioLogin login)
         {
             if (!ModelState.IsValid)
-                return BadRequest();
+                return CustomResponse(ModelState);
 
             var result = await _signInManager.PasswordSignInAsync(login.Email, login.Senha, false, true);
 
             if (result.Succeeded)
             {
-                return Ok(await GerarJwt(login.Email));
+                return CustomResponse(await GerarJwt(login.Email));
             }
-            return BadRequest();
+
+            if (result.IsLockedOut)
+            {
+                AdicionarErroProcessamento("Usuario temporariamente bloqueado por tentativas invalidas");
+                return CustomResponse();
+            }
+
+            AdicionarErroProcessamento("Usuario ou Senha Incorretos");
+            return CustomResponse();
 
         }
 
